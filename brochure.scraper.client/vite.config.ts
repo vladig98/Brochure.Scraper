@@ -51,12 +51,12 @@ export default defineConfig({
         }
     },
     server: {
-        proxy: {
-            '^/products': {
-                target,
-                secure: false
-            }
-        },
+        //proxy: {
+        //    '^/products': {
+        //        target,
+        //        secure: false
+        //    }
+        //},
         port: parseInt(env.DEV_SERVER_PORT || '54914'),
         https: {
             key: fs.readFileSync(keyFilePath),

@@ -9,6 +9,7 @@ public class ProductsAggregator(
 {
     private readonly List<Product> _products = [];
     private readonly Lock _lock = new();
+    private readonly JsonSerializerOptions _options = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
 
     public async Task AggregateAsync()
     {
@@ -31,6 +32,14 @@ public class ProductsAggregator(
                 _products.AddRange(products);
             }
         }
+
+        string projectRoot = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory)?.Parent?.Parent?.Parent?.FullName ?? string.Empty;
+        string outputPath = Path.Combine(projectRoot, "..", "brochure.scraper.client", "public", "products.json");
+
+        GetProductsResponse response = new(_products);
+        string json = JsonSerializer.Serialize(response, _options);
+        await File.WriteAllTextAsync(outputPath, json);
+        Environment.Exit(0);
     }
 
     public IEnumerable<Product> GetAllProducts() => _products.AsReadOnly();
