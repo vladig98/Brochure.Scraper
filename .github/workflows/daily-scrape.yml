@@ -24,14 +24,17 @@ jobs:
 
       - name: Build & Run Scraper
         run: |
-          # 1. Build the project (Note the Capital B)
+          dotnet new tool-manifest --force
+          dotnet tool install Microsoft.Playwright.CLI
+
+          # 2. Build the Server
           dotnet build Brochure.Scraper.Server/Brochure.Scraper.Server.csproj
-          
-          # 2. Install Playwright Browsers (Note the Capital B)
-          # We point directly to the bin folder created by the build
-          pwsh Brochure.Scraper.Server/bin/Debug/net8.0/playwright.ps1 install --with-deps
-          
-          # 3. Run the Scraper (Note the Capital B)
+
+          # 3. Install Browsers and Dependencies
+          # The '--with-deps' is critical for the Linux runner to have the right libraries
+          dotnet tool run playwright install --with-deps
+
+          # 4. Run the Scraper
           dotnet run --project Brochure.Scraper.Server/Brochure.Scraper.Server.csproj
 
       - name: Commit Updated JSON
