@@ -24,17 +24,15 @@ jobs:
 
       - name: Build & Run Scraper
         run: |
-          # Use find to make sure we aren't crazy (helps debugging if it fails again)
-          ls -R 
+          # 1. Build the project (Note the Capital B)
+          dotnet build Brochure.Scraper.Server/Brochure.Scraper.Server.csproj
           
-          # Try building using the relative path from root
-          dotnet build **/brochure.scraper.server.csproj
+          # 2. Install Playwright Browsers (Note the Capital B)
+          # We point directly to the bin folder created by the build
+          pwsh Brochure.Scraper.Server/bin/Debug/net8.0/playwright.ps1 install --with-deps
           
-          # Install Playwright using the wildcard path to the bin
-          pwsh **/playwright.ps1 install --with-deps
-          
-          # Run the project
-          dotnet run --project **/brochure.scraper.server.csproj
+          # 3. Run the Scraper (Note the Capital B)
+          dotnet run --project Brochure.Scraper.Server/Brochure.Scraper.Server.csproj
 
       - name: Commit Updated JSON
         run: |
