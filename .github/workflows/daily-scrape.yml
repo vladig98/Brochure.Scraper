@@ -24,17 +24,11 @@ jobs:
 
       - name: Build & Run Scraper
         run: |
-          dotnet new tool-manifest --force
-          dotnet tool install Microsoft.Playwright.CLI
-
-          # 2. Build the Server
+          # 1. Build the Server
           dotnet build Brochure.Scraper.Server/Brochure.Scraper.Server.csproj
 
-          # 3. Install Browsers and Dependencies
-          # The '--with-deps' is critical for the Linux runner to have the right libraries
-          dotnet tool run playwright install --with-deps
-
-          # 4. Run the Scraper
+          # 2. Run the Scraper (which will now trigger the install internally)
+          # We use 'sudo' or 'root' context sometimes if '--with-deps' needs to apt-get install
           dotnet run --project Brochure.Scraper.Server/Brochure.Scraper.Server.csproj
 
       - name: Commit Updated JSON

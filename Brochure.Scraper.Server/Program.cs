@@ -11,7 +11,7 @@ builder.Services.AddKeyedSingleton<IScraper, MetroScraper>(ScraperType.Metro);
 builder.Services.AddKeyedSingleton<IScraper, FantasticoScraper>(ScraperType.Fantastico);
 builder.Services.AddSingleton<ProductsAggregator>();
 
-int exitCode = Microsoft.Playwright.Program.Main(["install"]);
+int exitCode = Microsoft.Playwright.Program.Main(["install", "--with-deps"]);
 if (exitCode != 0)
 {
     throw new Exception($"Playwright browser installation failed with exit code {exitCode}");
