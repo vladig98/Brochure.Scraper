@@ -36,10 +36,10 @@ jobs:
           node-version: '24'
 
       - name: Build Frontend
-* run: |
+        run: |
           cd brochure.scraper.client
           npm install
-          npm run build # products.json is now inside 'dist'
+          npm run build
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -47,7 +47,6 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # This points to the final built folder
           path: './brochure.scraper.client/dist'
 
       - name: Deploy to GitHub Pages
