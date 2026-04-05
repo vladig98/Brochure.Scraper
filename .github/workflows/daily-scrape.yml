@@ -1,17 +1,18 @@
-name: Daily Product Scrape
+name: Daily Product Scrape & Deploy
 
 on:
   schedule:
-    - cron: '0 6 * * *' # Runs at 6:00 AM UTC daily
-  workflow_dispatch: # Allows you to click a button in GitHub to start it manually
+    - cron: '0 6 * * *'
+  workflow_dispatch:
 
 permissions:
-  contents: write # Crucial: Allows the bot to push the JSON back to your repo
+  contents: write
+  pages: write
+  id-token: write
 
 jobs:
-  scrape-and-deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -21,28 +22,32 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Install Playwright Browsers
-        # We need the browsers for the scraper to actually work
+      - name: Build & Run Scraper
         run: |
           dotnet build brochure.scraper.server/brochure.scraper.server.csproj
           pwsh brochure.scraper.server/bin/Debug/net8.0/playwright.ps1 install --with-deps
+          dotnet run --project brochure.scraper.server/brochure.scraper.server.csproj
 
-      - name: Run Scraper
-        # This starts the backend, writes the file, and exits naturally
-        run: dotnet run --project brochure.scraper.server/brochure.scraper.server.csproj
-
-      - name: Commit and Push changes
-        # Only pushes if the products.json actually changed
+      - name: Commit Updated JSON
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add brochure.scraper.client/public/products.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Automated Data Refresh: $(date)" && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Data Update" && git push)
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Frontend
+        run: |
+          cd brochure.scraper.client
+          npm install
+          npm run build
 
       - name: Deploy to GitHub Pages
-        # This triggers the actual hosting update
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./brochure.scraper.client/dist 
-          # Note: Ensure you run 'npm run build' before this step if deploying the frontend here
+          publish_dir: ./brochure.scraper.client/dist
