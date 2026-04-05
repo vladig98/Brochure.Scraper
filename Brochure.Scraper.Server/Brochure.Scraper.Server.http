@@ -1,0 +1,6 @@
+@Brochure.Scraper.Server_HostAddress = http://localhost:5155
+
+GET {{Brochure.Scraper.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

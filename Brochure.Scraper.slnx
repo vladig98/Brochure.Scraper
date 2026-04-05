@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="brochure.scraper.client/brochure.scraper.client.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="Brochure.Scraper.Server/Brochure.Scraper.Server.csproj" />
+</Solution>
