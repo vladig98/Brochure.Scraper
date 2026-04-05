@@ -6,12 +6,15 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
 jobs:
   build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -33,13 +36,20 @@ jobs:
           node-version: '24'
 
       - name: Build Frontend
-        run: |
+* run: |
           cd brochure.scraper.client
           npm install
-          npm run build -- --emptyOutDir || npx vite build
+          npm run build # products.json is now inside 'dist'
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # This points to the final built folder
+          path: './brochure.scraper.client/dist'
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./brochure.scraper.client/dist
+        id: deployment
+        uses: actions/deploy-pages@v4

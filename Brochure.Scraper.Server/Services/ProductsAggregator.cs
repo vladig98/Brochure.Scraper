@@ -9,7 +9,7 @@ public class ProductsAggregator(
 {
     private readonly List<Product> _products = [];
     private readonly Lock _lock = new();
-    private readonly JsonSerializerOptions _options = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
+    private readonly JsonSerializerOptions _options = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = false };
 
     public async Task AggregateAsync()
     {
