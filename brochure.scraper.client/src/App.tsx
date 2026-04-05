@@ -55,7 +55,7 @@ export default function App() {
             try {
                 setLoading(true);
                 //const response = await fetch('/products');
-                const response = await fetch('/products.json');
+                const response = await fetch('products.json');
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
                 setAllProducts(data.products || []);
