@@ -2,7 +2,7 @@ name: Daily Product Scrape & Deploy
 
 on:
   schedule:
-    - cron: '0 6 * * *'
+    - cron: '17 7 * * *'
   workflow_dispatch:
   
 env:
