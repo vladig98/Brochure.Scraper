@@ -6,7 +6,9 @@ type ScraperType = 'Kaufland' | 'Lidl' | 'Billa' | 'Metro' | 'Fantastico';
 
 interface PriceInfo {
     currentPriceBgn: string;
+    currentPriceEur: string;
     oldPriceBgn: string;
+    oldPriceEur: string;
     unitPriceBgn: string;
     discount: string;
 }
@@ -108,11 +110,17 @@ function ProductDashboard({ allProducts }: { allProducts: Product[] }) {
     const [currentPage, setCurrentPage] = useState(1);
 
     const filteredProducts = useMemo(() => {
-        return allProducts.filter((p) => {
+        const filtered = allProducts.filter((p) => {
             const matchesStore = selectedStore === 'All' || p.storeName === selectedStore;
             const searchContent = `${p.title} ${p.subtitle} ${p.detailTitle} ${p.detailDescription} ${p.categoryName} ${p.storeName}`.toLowerCase();
             const matchesSearch = searchContent.includes(searchTerm.toLowerCase());
             return matchesStore && matchesSearch;
+        });
+
+        return filtered.sort((a, b) => {
+            const priceA = parseFloat(a.prices.currentPriceEur.replace(',', '.'));
+            const priceB = parseFloat(b.prices.currentPriceEur.replace(',', '.'));
+            return priceA - priceB;
         });
     }, [allProducts, searchTerm, selectedStore]);
 
@@ -254,8 +262,16 @@ function ProductCard({ product }: { product: Product }) {
                 <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-100 group-hover:bg-indigo-50/50 group-hover:border-indigo-100 transition-colors">
                     <div className="flex items-baseline gap-2 flex-wrap">
                         <span className="text-2xl font-black text-slate-900 tracking-tight">
-                            {product.prices.currentPriceBgn} <span className="text-lg font-bold text-slate-500">лв.</span>
+                            {product.prices.currentPriceEur} <span className="text-lg font-bold text-slate-500">€</span>
                         </span>
+                        <span className="text-sm font-bold text-indigo-600/70 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">
+                            {product.prices.currentPriceBgn} лв.
+                        </span>
+                        {product.prices.oldPriceEur && (
+                            <span className="text-sm font-semibold text-slate-400 line-through decoration-slate-300">
+                                {product.prices.oldPriceEur} €
+                            </span>
+                        )}
                         {product.prices.oldPriceBgn && (
                             <span className="text-sm font-semibold text-slate-400 line-through decoration-slate-300">
                                 {product.prices.oldPriceBgn} лв.
