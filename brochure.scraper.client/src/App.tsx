@@ -118,8 +118,8 @@ function ProductDashboard({ allProducts }: { allProducts: Product[] }) {
         });
 
         return filtered.sort((a, b) => {
-            const priceA = parseFloat(a.prices.currentPriceEur.replace(',', '.'));
-            const priceB = parseFloat(b.prices.currentPriceEur.replace(',', '.'));
+            const priceA = parseFloat(a.prices.currentPriceEur?.replace(',', '.') || '0');
+            const priceB = parseFloat(b.prices.currentPriceEur?.replace(',', '.') || '0');
             return priceA - priceB;
         });
     }, [allProducts, searchTerm, selectedStore]);
@@ -267,15 +267,19 @@ function ProductCard({ product }: { product: Product }) {
                         <span className="text-sm font-bold text-indigo-600/70 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">
                             {product.prices.currentPriceBgn} лв.
                         </span>
-                        {product.prices.oldPriceEur && (
-                            <span className="text-sm font-semibold text-slate-400 line-through decoration-slate-300">
-                                {product.prices.oldPriceEur} €
-                            </span>
-                        )}
-                        {product.prices.oldPriceBgn && (
-                            <span className="text-sm font-semibold text-slate-400 line-through decoration-slate-300">
-                                {product.prices.oldPriceBgn} лв.
-                            </span>
+                        {(product.prices.oldPriceEur || product.prices.oldPriceBgn) && (
+                            <div className="w-full flex gap-2 mt-1 items-center">
+                                {product.prices.oldPriceEur && (
+                                    <span className="text-sm font-semibold text-slate-400 line-through decoration-slate-300">
+                                        {product.prices.oldPriceEur} €
+                                    </span>
+                                )}
+                                {product.prices.oldPriceBgn && (
+                                    <span className="text-sm font-semibold text-slate-400 line-through decoration-slate-300">
+                                        {product.prices.oldPriceBgn} лв.
+                                    </span>
+                                )}
+                            </div>
                         )}
                     </div>
                     {product.prices.unitPriceBgn && (
