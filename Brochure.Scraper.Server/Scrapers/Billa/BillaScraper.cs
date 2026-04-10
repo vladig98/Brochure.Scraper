@@ -7,6 +7,7 @@ public class BillaScraper(HttpClient client, ILogger<BillaScraper> logger) : ISc
     public async Task<ICollection<Product>> FetchProductsAsync(CancellationToken cancellationToken = default)
     {
         List<Product> allOffers = [];
+        DateTime now = DateTime.UtcNow;
 
         try
         {
@@ -44,7 +45,7 @@ public class BillaScraper(HttpClient client, ILogger<BillaScraper> logger) : ISc
                 billaProducts.Add(product);
             }
 
-            IEnumerable<Product> products = billaProducts.Select(x => x.MapToProduct());
+            IEnumerable<Product> products = billaProducts.Select(x => x.MapToProduct(now));
             allOffers.AddRange(products);
         }
         catch (Exception ex)

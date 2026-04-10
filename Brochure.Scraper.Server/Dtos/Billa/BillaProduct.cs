@@ -14,7 +14,7 @@ public record class BillaProduct(
 {
     private const decimal _bgnRate = 1.95583M;
 
-    public Product MapToProduct()
+    public Product MapToProduct(DateTime from)
     {
         decimal currentPriceEur = DiscountedPriceEur > 0
             ? DiscountedPriceEur
@@ -28,7 +28,7 @@ public record class BillaProduct(
 
         return new
         (
-            DateFrom: DateTime.UtcNow,
+            DateFrom: from,
             DateTo: DiscountEndDate,
             Title: ProductName,
             Subtitle: string.Empty,
