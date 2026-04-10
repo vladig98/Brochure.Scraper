@@ -39,7 +39,7 @@ public class LidlScraper(ILogger<LidlScraper> logger) : IScraper
         await using IBrowserContext context = await browser.NewContextAsync();
         IPage page = await context.NewPageAsync();
 
-        List<Product> offers = [];
+        List<Product> lidlProducts = [];
 
         try
         {
@@ -71,7 +71,13 @@ public class LidlScraper(ILogger<LidlScraper> logger) : IScraper
                 LidlProduct[] products = JsonSerializer.Deserialize<LidlProduct[]>(jsonDataString, _jsonSerializerOptions) ?? [];
                 IEnumerable<Product> lidlOffers = products.Select(x => x.MapToProduct());
 
-                offers.AddRange(lidlOffers);
+                lidlProducts.AddRange(lidlOffers);
+            }
+
+            List<Product> offers = [.. lidlProducts.Distinct()];
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Lidl successfully scraped {Count} products", offers.Count);
             }
 
             return offers;

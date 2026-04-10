@@ -118,8 +118,8 @@ function ProductDashboard({ allProducts }: { allProducts: Product[] }) {
         });
 
         return filtered.sort((a, b) => {
-            const priceA = parseFloat(a.prices.currentPriceEur?.replace(',', '.') || '0');
-            const priceB = parseFloat(b.prices.currentPriceEur?.replace(',', '.') || '0');
+            const priceA = parseFloat(a.prices.currentPriceEur?.toLowerCase().replace(',', '.').replace('лв.', '').replace('лв', '').replace('€', '') || '0');
+            const priceB = parseFloat(b.prices.currentPriceEur?.toLowerCase().replace(',', '.').replace('лв.', '').replace('лв', '').replace('€', '') || '0');
             return priceA - priceB;
         });
     }, [allProducts, searchTerm, selectedStore]);
@@ -262,21 +262,21 @@ function ProductCard({ product }: { product: Product }) {
                 <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-100 group-hover:bg-indigo-50/50 group-hover:border-indigo-100 transition-colors">
                     <div className="flex items-baseline gap-2 flex-wrap">
                         <span className="text-2xl font-black text-slate-900 tracking-tight">
-                            {product.prices.currentPriceEur} <span className="text-lg font-bold text-slate-500">€</span>
+                            {parseFloat(product.prices.currentPriceEur?.toLowerCase().replace(',', '.').replace('лв.', '').replace('лв', '').replace('€', '') || '0').toFixed(2)} <span className="text-lg font-bold text-slate-500">€</span>
                         </span>
                         <span className="text-sm font-bold text-indigo-600/70 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">
-                            {product.prices.currentPriceBgn} лв.
+                            {parseFloat(product.prices.currentPriceBgn?.toLowerCase().replace(',', '.').replace('лв.', '').replace('лв', '').replace('€', '') || '0').toFixed(2)} лв.
                         </span>
                         {(product.prices.oldPriceEur || product.prices.oldPriceBgn) && (
                             <div className="w-full flex gap-2 mt-1 items-center">
                                 {product.prices.oldPriceEur && (
                                     <span className="text-sm font-semibold text-slate-400 line-through decoration-slate-300">
-                                        {product.prices.oldPriceEur} €
+                                        {parseFloat(product.prices.oldPriceEur?.toLowerCase().replace(',', '.').replace('лв.', '').replace('лв', '').replace('€', '') || '0').toFixed(2)} €
                                     </span>
                                 )}
                                 {product.prices.oldPriceBgn && (
                                     <span className="text-sm font-semibold text-slate-400 line-through decoration-slate-300">
-                                        {product.prices.oldPriceBgn} лв.
+                                        {parseFloat(product.prices.oldPriceBgn?.toLowerCase().replace(',', '.').replace('лв.', '').replace('лв', '').replace('€', '') || '0').toFixed(2)} лв.
                                     </span>
                                 )}
                             </div>

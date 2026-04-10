@@ -53,9 +53,17 @@ public class KauflandScraper(ILogger<KauflandScraper> logger) : IScraper
                 return [];
             }
 
-            return [.. kauflandData.Props.OfferData.Cycles
+            List<Product> offers = [.. kauflandData.Props.OfferData.Cycles
                 .SelectMany(cycle => cycle.Categories)
-                .SelectMany(category => category.Offers.Select(offer => offer.MapToProduct(category.Name)))];
+                .SelectMany(category => category.Offers.Select(offer => offer.MapToProduct(category.Name)))
+                .Distinct()];
+
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Kaufland successfully scraped {Count} products", offers.Count);
+            }
+
+            return offers;
         }
         catch (Exception e)
         {

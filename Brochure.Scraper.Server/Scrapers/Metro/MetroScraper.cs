@@ -43,7 +43,7 @@ public class MetroScraper(HttpClient client, ILogger<MetroScraper> logger) : ISc
         await Task.WhenAll(extractionTasks);
         ICollection<Product> data = Parse(_rawProductJsonData);
 
-        return data;
+        return [.. data.Distinct()];
     }
 
     private static string BuildProductsUrl(string[] batch)
@@ -91,7 +91,13 @@ public class MetroScraper(HttpClient client, ILogger<MetroScraper> logger) : ISc
                 .SelectMany(z => z.PossibleDeliveryModes.Store.PossibleFulfillmentTypes.Store.SellingPriceInfo?.MapToProduct(y) ?? []))
             )];
 
-        return [.. products.Distinct()];
+        List<Product> offers = [.. products.Distinct()];
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Metro successfully scraped {Count} products", offers.Count);
+        }
+
+        return offers;
     }
 
     private async Task RunDiscoveryPhase(CancellationToken ct)

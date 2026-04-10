@@ -1,19 +1,33 @@
 ﻿namespace Brochure.Scraper.Server.Dtos.Kaufland;
 
-public record class KauflandOffer(KauflandPrices Prices, string DateFrom, string DateTo, string Title, string Subtitle, string DetailTitle, string DetailDescription)
+public record class KauflandOffer(
+    KauflandPrices Prices, 
+    string DateFrom, 
+    string DateTo, 
+    string Title, 
+    string Subtitle, 
+    string DetailTitle, 
+    string DetailDescription,
+    string? FormattedPrice,
+    decimal? Discount,
+    string Unit,
+    string? FormattedOldPrice,
+    string? LoyaltyFormattedPrice,
+    string? LoyaltyFormattedOldPrice,
+    decimal? LoyaltyDiscount)
 {
     public Product MapToProduct(string category)
     {
         KauflandFormatted formattedPrice = Prices.Alternative.Formatted;
 
         PriceInfo price = new(
-            formattedPrice.Standard,
-            formattedPrice.Old,
-            formattedPrice.Base,
-            formattedPrice.FormattedPrice,
-            formattedPrice.FormattedOldPrice,
-            formattedPrice.FormattedBasePrice,
-            formattedPrice.Discount
+            CurrentPriceBgn: formattedPrice.Standard ?? formattedPrice.Loyalty ?? string.Empty,
+            OldPriceBgn: formattedPrice.Old ?? formattedPrice.LoyaltyOld ?? string.Empty,
+            UnitPriceBgn: Unit,
+            CurrentPriceEur: FormattedPrice ?? LoyaltyFormattedPrice ?? string.Empty,
+            OldPriceEur: FormattedOldPrice ?? LoyaltyFormattedOldPrice ?? string.Empty,
+            UnitPriceEur: Unit,
+            Discount: (Discount ?? LoyaltyDiscount ?? 0).ToString()
         );
 
         return new(

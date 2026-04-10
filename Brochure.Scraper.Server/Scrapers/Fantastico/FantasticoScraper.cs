@@ -133,7 +133,13 @@ public class FantasticoScraper(ILogger<FantasticoScraper> logger) : IScraper
             }
         }
 
-        return [.. allProducts.Distinct()];
+        List<Product> offers = [.. allProducts.Distinct()];
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Fantastico successfully scraped {Count} products", offers.Count);
+        }
+
+        return offers;
     }
 
     private static void PutTextIntoBoxes(FantasticoBounds boxBounds, FantasticoBounds textBounds, List<FantasticoTextBox> boxesOnCurrentPage, List<FantasticoText> textOnCurrentPage)

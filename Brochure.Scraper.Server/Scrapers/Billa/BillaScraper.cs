@@ -52,7 +52,13 @@ public class BillaScraper(HttpClient client, ILogger<BillaScraper> logger) : ISc
             logger.LogError(ex, "Can't scrape Billa.");
         }
 
-        return allOffers;
+        List<Product> offers = [.. allOffers.Distinct()];
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Billa successfully scraped {Count} products", offers.Count);
+        }
+        
+        return offers;
     }
 
     private static decimal ParseDecimal(string text)

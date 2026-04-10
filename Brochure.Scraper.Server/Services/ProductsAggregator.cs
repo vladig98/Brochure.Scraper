@@ -39,6 +39,11 @@ public class ProductsAggregator(
         GetProductsResponse response = new(_products);
         string json = JsonSerializer.Serialize(response, _options);
         await File.WriteAllTextAsync(outputPath, json);
+
+        //string brokenOutputPath = Path.Combine(projectRoot, "..", "brochure.scraper.client", "public", "broken.json");
+        //string brokenJson = JsonSerializer.Serialize(_products.Where(x => string.IsNullOrWhiteSpace(x.Prices.CurrentPriceEur) || string.IsNullOrWhiteSpace(x.Prices.CurrentPriceBgn)), _options);
+        //await File.WriteAllTextAsync(brokenOutputPath, brokenJson);
+
         Environment.Exit(0);
     }
 
