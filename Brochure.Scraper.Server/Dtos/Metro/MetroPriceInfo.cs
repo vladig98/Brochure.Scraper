@@ -57,14 +57,17 @@ public record class MetroPriceInfo(
         string discount = SummaryDnrInfo is not null
             ? SummaryDnrInfo.Levels.First().Value.FinalSingleGrossPrice
             : oldPrice > 0
-                ? $"{(oldPrice - current) / oldPrice * 100}%"
+                ? $"{Math.Ceiling((oldPrice - current) / oldPrice * 100)}%"
                 : "0%";
 
         if (SummaryDnrInfo?.Levels is { Count: > 0 })
         {
-            string[] levelsKeys = [.. SummaryDnrInfo.Levels.Keys];
-            foreach (string levelKey in levelsKeys)
+            string[] levelsKeys = [.. SummaryDnrInfo.Levels.Keys.OrderBy(x => x)];
+            for (int i = 0; i < levelsKeys.Length; i++)
             {
+                string levelKey = levelsKeys[i];
+                string unitGroup = i < levelsKeys.Length - 1 ? $"{levelKey} - {levelsKeys[i + 1]}" : levelKey;
+
                 MetroDnrLevel level = SummaryDnrInfo.Levels[levelKey];
                 products.Add(new Product
                 (
@@ -76,10 +79,10 @@ public record class MetroPriceInfo(
                     (
                         CurrentPriceBgn: (Math.Round(decimal.Parse(level.FinalSingleGrossPrice) * _bgnRate, 2)).ToString(),
                         OldPriceBgn: currentBgn.ToString(),
-                        UnitPriceBgn: levelKey,
+                        UnitPriceBgn: unitGroup,
                         CurrentPriceEur: level.FinalSingleGrossPrice.ToString(),
                         OldPriceEur: current.ToString(),
-                        UnitPriceEur: levelKey,
+                        UnitPriceEur: unitGroup,
                         Discount: $"{level.Value}%"
                     ),
                     DetailTitle: $"{bundle.BundleVolume} x {bundle.BundleDepth}{bundle.BundleDepthMeasureUnit} x {bundle.BundleHeight}{bundle.BundleHeightMeasureUnit} x {bundle.BundleWidth}{bundle.BundleWidthMeasureUnit} {bundle.ContentData.NetPieceWeight?.Value} {bundle.ContentData.NetPieceWeight?.Uom}",
