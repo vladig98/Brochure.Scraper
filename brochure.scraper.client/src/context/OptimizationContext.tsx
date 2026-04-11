@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { Product } from '../types';
 
 interface FuelPrices {
     A95: number;
@@ -12,24 +13,41 @@ export interface StoreLocation {
     address?: string;
 }
 
+interface BasketItem extends Product {
+    quantity: number;
+}
+
 interface OptimizationState {
     fuelPrices: FuelPrices | null;
     consumption: number; // L/100km
     homeLocation: string; // "Sofia, Mladost" etc.
     storeLocations: Record<string, StoreLocation>;
     homeCoords: StoreLocation | null;
+    basket: BasketItem[];
     setStoreLocation: (store: string, loc: StoreLocation) => void;
     setConsumption: (val: number) => void;
     setHomeLocation: (val: string) => void;
     setHomeCoords: (loc: StoreLocation) => void;
+    addToBasket: (product: Product) => void;
+    removeFromBasket: (title: string, store: string) => void;
+    clearBasket: () => void;
 }
 
 const OptimizationContext = createContext<OptimizationState | undefined>(undefined);
 
 export const OptimizationProvider = ({ children }: { children: React.ReactNode }) => {
     const [fuelPrices, setFuelPrices] = useState<FuelPrices | null>(null);
-    const [consumption, setConsumption] = useState(8.0); // Default L/100km
     const [homeLocation, setHomeLocation] = useState('');
+    const [basket, setBasket] = useState<BasketItem[]>([]);
+
+    const [consumption, setConsumption] = useState<number>(() => {
+        const saved = localStorage.getItem('vehicle_consumption');
+        return saved ? parseFloat(saved) : 7.5; // Default to 7.5 if nothing found
+    });
+
+    useEffect(() => {
+        localStorage.setItem('vehicle_consumption', consumption.toString());
+    }, [consumption]);
 
     const [storeLocations, setStoreLocations] = useState<Record<string, StoreLocation>>(() => {
         const saved = localStorage.getItem('store_locations');
@@ -52,6 +70,28 @@ export const OptimizationProvider = ({ children }: { children: React.ReactNode }
         localStorage.setItem('home_coords', JSON.stringify(loc));
     };
 
+    const addToBasket = (product: Product) => {
+        setBasket(prev => {
+            const exists = prev.find(item => item.title === product.title && item.storeName === product.storeName);
+            if (exists) {
+                return prev.map(item =>
+                    item.title === product.title ? { ...item, quantity: item.quantity + 1 } : item
+                );
+            }
+            return [...prev, { ...product, quantity: 1 }];
+        });
+    };
+
+    const removeFromBasket = (title: string, store: string) => {
+        setBasket(prev => prev.filter(item =>
+            item.title !== title || item.storeName !== store
+        ));
+    };
+
+    const clearBasket = () => {
+        setBasket([]);
+    };
+
     useEffect(() => {
         fetch('fuel_prices.json')
             .then(res => res.json())
@@ -60,7 +100,21 @@ export const OptimizationProvider = ({ children }: { children: React.ReactNode }
     }, []);
 
     return (
-        <OptimizationContext.Provider value={{ fuelPrices, consumption, homeLocation, storeLocations, homeCoords, setStoreLocation, setConsumption, setHomeLocation, setHomeCoords: updateHomeCoords }}>
+        <OptimizationContext.Provider value={{
+            fuelPrices,
+            consumption,
+            homeLocation,
+            storeLocations,
+            homeCoords,
+            basket,
+            setStoreLocation,
+            setConsumption,
+            setHomeLocation,
+            setHomeCoords: updateHomeCoords,
+            addToBasket,
+            removeFromBasket,
+            clearBasket
+        }}>
             {children}
         </OptimizationContext.Provider>
     );

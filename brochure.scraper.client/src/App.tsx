@@ -1,32 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Search, Calendar, ChevronLeft, ChevronRight, Tag, AlertCircle, Loader2, Settings, MapPin } from 'lucide-react';
+import { Search, Calendar, ChevronLeft, ChevronRight, Tag, AlertCircle, Loader2, MapPin, ShoppingCart } from 'lucide-react';
 import { useOptimization } from './context/OptimizationContext';
 import { VehicleWizard } from './components/VehicleWizard';
 import { StoreMapModal } from './components/StoreMapModal';
-
-// --- Types ---
-type ScraperType = 'Kaufland' | 'Lidl' | 'Billa' | 'Metro' | 'Fantastico';
-
-interface PriceInfo {
-    currentPriceBgn: string;
-    currentPriceEur: string;
-    oldPriceBgn: string;
-    oldPriceEur: string;
-    unitPriceBgn: string;
-    discount: string;
-}
-
-interface Product {
-    dateFrom: string;
-    dateTo: string;
-    title: string;
-    subtitle: string;
-    prices: PriceInfo;
-    detailTitle: string;
-    detailDescription: string;
-    categoryName: string;
-    storeName: ScraperType;
-}
+import { BasketSidebar } from './components/BasketSidebar';
+import type { Product, ScraperType } from './types';
+import { getDistanceKm } from './utils/geo';
 
 const ITEMS_PER_PAGE = 24;
 
@@ -46,24 +25,6 @@ const storeBadges: Record<string, string> = {
     Billa: 'text-yellow-800 bg-yellow-50 border-yellow-300',
     Metro: 'text-slate-800 bg-slate-100 border-slate-300',
     Fantastico: 'text-emerald-700 bg-emerald-50 border-emerald-200',
-};
-
-export const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371; // Earth's radius in km
-
-    // 1. Calculate the 'Straight Line' (Haversine)
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const straightLine = R * c;
-
-    const multiplier = straightLine < 5 ? 1.4 : 1.2;
-    const estimatedDrivingDistance = straightLine * multiplier;
-
-    return estimatedDrivingDistance;
 };
 
 // --- Main App Component ---
@@ -127,188 +88,202 @@ function ProductDashboard({ allProducts }: { allProducts: Product[] }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedStore, setSelectedStore] = useState<ScraperType | 'All'>('All');
     const [currentPage, setCurrentPage] = useState(1);
-
-    // Custom States for Optimization
-    const { consumption } = useOptimization();
+    const { consumption, basket, addToBasket, storeLocations, setStoreLocation, homeCoords, setHomeCoords } = useOptimization();
     const [showWizard, setShowWizard] = useState(false);
-
     const [activeMapStore, setActiveMapStore] = useState<string | null>(null);
-    const { storeLocations, setStoreLocation, homeCoords, setHomeCoords } = useOptimization();
+    const [isMobileBasketOpen, setIsMobileBasketOpen] = useState(false);
 
     const filteredProducts = useMemo(() => {
         const filtered = allProducts.filter((p) => {
             const matchesStore = selectedStore === 'All' || p.storeName === selectedStore;
             const searchContent = `${p.title} ${p.subtitle} ${p.detailTitle} ${p.detailDescription} ${p.categoryName} ${p.storeName}`.toLowerCase();
-            const matchesSearch = searchContent.includes(searchTerm.toLowerCase());
-            return matchesStore && matchesSearch;
+            return searchContent.includes(searchTerm.toLowerCase()) && matchesStore;
         });
 
         return filtered.sort((a, b) => {
-            const priceA = parseFloat(a.prices.currentPriceEur?.toLowerCase().replace(',', '.').replace('лв.', '').replace('лв', '').replace('€', '') || '0');
-            const priceB = parseFloat(b.prices.currentPriceEur?.toLowerCase().replace(',', '.').replace('лв.', '').replace('лв', '').replace('€', '') || '0');
+            const priceA = parseFloat(a.prices.currentPriceEur?.replace(',', '.') || '0');
+            const priceB = parseFloat(b.prices.currentPriceEur?.replace(',', '.') || '0');
             return priceA - priceB;
         });
     }, [allProducts, searchTerm, selectedStore]);
 
     const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
-    const paginatedProducts = filteredProducts.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE
-    );
-
+    const paginatedProducts = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
     const stores: (ScraperType | 'All')[] = ['All', 'Kaufland', 'Lidl', 'Billa', 'Metro', 'Fantastico'];
 
     return (
-        <div className="min-h-screen bg-slate-50/50 pb-12 font-sans selection:bg-indigo-100 selection:text-indigo-900">
-            {/* Elegant Header Area */}
-            <div className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-                <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Deal Aggregator</h1>
-                            <p className="text-sm text-slate-500 font-medium mt-1">Showing {filteredProducts.length} active promotions</p>
-                        </div>
+        /* GRID PARENT: This forces the Sidebar to the right */
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_384px] min-h-screen bg-slate-50/50 font-sans overflow-hidden">
 
-                        {/* Search Bar */}
-                        <div className="relative w-full sm:max-w-md group">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <Search className="size-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+            {/* LEFT COLUMN: Scrollable Products */}
+            <main className="h-screen overflow-y-auto overflow-x-hidden">
+                {/* Header */}
+                <div className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
+                    <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Deal Aggregator</h1>
+                                <p className="text-sm text-slate-500 font-medium mt-1">Showing {filteredProducts.length} active promotions</p>
                             </div>
-                            <input
-                                type="text"
-                                placeholder="Search products, categories..."
-                                className="w-full pl-11 pr-4 py-3 bg-slate-100 border-transparent hover:bg-slate-200 hover:border-slate-300 focus:bg-white border focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 rounded-xl outline-none transition-all font-medium text-slate-700 placeholder:text-slate-400"
-                                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                            />
+                            <div className="relative w-full sm:max-w-md group">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Search products..."
+                                    className="w-full pl-11 pr-4 py-3 bg-slate-100 border-transparent rounded-xl focus:bg-white border focus:border-indigo-500 outline-none transition-all"
+                                    onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                                />
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Filter Pills */}
-                    <div className="flex gap-3 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
-                        {stores.map((store) => {
-                            return (
-                                <div key={store} className="relative group">
-                                    <button
-                                        onClick={() => { setSelectedStore(store); setCurrentPage(1); }}
-                                        className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all ...`}
-                                    >
-                                        {store}
-                                    </button>
+                        {/* Filter Pills */}
+                        <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide pt-2">
+                            {stores.map((store) => {
+                                const isActive = selectedStore === store;
 
-                                    {store !== 'All' && (
+                                return (
+                                    <div key={store} className="relative group flex-shrink-0">
                                         <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setActiveMapStore(store);
-                                            }}
-                                            className={`absolute -top-1 -right-1 p-1 rounded-full border shadow-sm transition-transform hover:scale-110 
-                    ${storeLocations[store] ? 'bg-emerald-500 border-emerald-600 text-white' : 'bg-white border-slate-200 text-slate-400'}`}
+                                            onClick={() => { setSelectedStore(store); setCurrentPage(1); }}
+                                            className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all border ${isActive
+                                                    ? storeStyles[store]
+                                                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 shadow-sm'
+                                                }`}
                                         >
-                                            <MapPin size={10} />
+                                            {store}
                                         </button>
-                                    )}
-                                </div>
-                            );
-                        })}
+
+                                        {/* The Map Icon: Re-added and positioned absolute to the pill */}
+                                        {store !== 'All' && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActiveMapStore(store);
+                                                }}
+                                                className={`absolute -top-1.5 -right-1.5 p-1.5 rounded-full border shadow-sm transition-all hover:scale-110 z-10 
+                            ${storeLocations[store]
+                                                        ? 'bg-emerald-500 border-emerald-600 text-white'
+                                                        : 'bg-white border-slate-200 text-slate-400'
+                                                    }`}
+                                            >
+                                                <MapPin size={12} strokeWidth={2.5} />
+                                            </button>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Main Content Grid */}
-            <div className="max-w-7xl mx-auto px-6 mt-8">
-
-                {/* Optimization Controls */}
-                <div className="mb-8 p-6 bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col gap-4">
-                    <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                        <Settings className="size-4" /> Optimization Settings
-                    </h2>
-                    <div className="flex flex-col sm:flex-row gap-4">
-                        <button
-                            onClick={() => setActiveMapStore('HOME')} // Use a reserved keyword
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all border
-            ${homeCoords
-                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                                    : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300'}`}
-                        >
-                            <MapPin size={16} className={homeCoords ? 'text-emerald-500' : 'text-slate-400'} />
-                            {homeCoords ? 'Home Location Set' : 'Set Home on Map'}
-                        </button>
-
-                        <button
-                            onClick={() => setShowWizard(!showWizard)}
-                            className="text-sm font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-xl transition-colors w-fit whitespace-nowrap"
-                        >
-                            {showWizard ? 'Close Vehicle Selector' : `Vehicle: ${consumption.toFixed(1)} L/100km (Adjust)`}
-                        </button>
+                {/* Content Area */}
+                <div className="max-w-7xl mx-auto px-6 py-8">
+                    {/* Optimization Settings */}
+                    <div className="mb-8 p-6 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                        <div className="flex flex-wrap gap-4">
+                            <button onClick={() => setActiveMapStore('HOME')} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border bg-white">
+                                <MapPin size={16} className={homeCoords ? 'text-emerald-500' : 'text-slate-400'} />
+                                {homeCoords ? 'Home Set' : 'Set Home'}
+                            </button>
+                            <button onClick={() => setShowWizard(!showWizard)} className="text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl">
+                                {consumption.toFixed(1)} L/100km
+                            </button>
+                        </div>
+                        {showWizard && <div className="mt-4"><VehicleWizard /></div>}
                     </div>
-                    {showWizard && <div className="mt-2 max-w-sm"><VehicleWizard /></div>}
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {paginatedProducts.map((product, idx) => (
-                        <ProductCard key={`${product.title}-${idx}`} product={product} />
-                    ))}
-                </div>
+                    {/* Product Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {paginatedProducts.map((product, idx) => (
+                            <ProductCard key={idx} product={product} onAdd={() => addToBasket(product)} />
+                        ))}
+                    </div>
 
-                {/* Empty State */}
-                {filteredProducts.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-32 text-slate-400">
-                        <Tag className="size-16 mb-4 opacity-20" />
-                        <h3 className="text-xl font-semibold text-slate-700">No deals found</h3>
-                        <p className="text-sm mt-2">Try adjusting your search or store filters.</p>
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className="mt-12 flex justify-center items-center gap-4">
+                            <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="p-3 bg-white border rounded-xl disabled:opacity-30">
+                                <ChevronLeft />
+                            </button>
+                            <span className="font-bold">{currentPage} / {totalPages}</span>
+                            <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="p-3 bg-white border rounded-xl disabled:opacity-30">
+                                <ChevronRight />
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </main>
+
+            {/* RIGHT COLUMN: Sidebar (Desktop Only) */}
+            <aside className="hidden xl:block w-96 bg-white border-l border-slate-200 h-screen overflow-y-auto">
+                {basket.length > 0 ? (
+                    <BasketSidebar />
+                ) : (
+                    <div className="h-full flex flex-col items-center justify-center p-8 text-center text-slate-400">
+                        <ShoppingCart size={48} className="mb-4 opacity-20" />
+                        <p className="font-medium">Your basket is empty</p>
                     </div>
                 )}
+            </aside>
 
-                {/* Pagination */}
-                {totalPages > 1 && (
-                    <div className="mt-16 flex justify-center items-center gap-2">
-                        <button
-                            disabled={currentPage === 1}
-                            onClick={() => setCurrentPage(p => p - 1)}
-                            className="p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-300 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white transition-all shadow-sm"
-                        >
-                            <ChevronLeft className="size-5 text-slate-600" />
-                        </button>
+            {/* Mobile FAB */}
+            {basket.length > 0 && (
+                <button
+                    onClick={() => setIsMobileBasketOpen(true)}
+                    className="xl:hidden fixed bottom-6 right-6 bg-slate-900 text-white p-4 rounded-full shadow-2xl z-50 active:scale-95 transition-transform"
+                >
+                    <ShoppingCart size={24} />
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white">
+                        {basket.length}
+                    </span>
+                </button>
+            )}
 
-                        <div className="px-6 py-3 bg-white border border-slate-200 rounded-xl shadow-sm font-semibold text-slate-700 text-sm">
-                            {currentPage} <span className="text-slate-400 font-medium mx-1">/</span> {totalPages}
+            {/* Modals */}
+            {activeMapStore && (
+                <StoreMapModal
+                    storeName={activeMapStore}
+                    currentLoc={activeMapStore === 'HOME' ? homeCoords : storeLocations[activeMapStore]}
+                    onClose={() => setActiveMapStore(null)}
+                    onSave={(loc: any) => {
+                        activeMapStore === 'HOME' ? setHomeCoords(loc) : setStoreLocation(activeMapStore, loc);
+                        setActiveMapStore(null);
+                    }}
+                />
+            )}
+
+            {isMobileBasketOpen && (
+                <div className="fixed inset-0 z-[60] xl:hidden">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                        onClick={() => setIsMobileBasketOpen(false)}
+                    />
+
+                    {/* Drawer Content */}
+                    <div className="absolute bottom-0 inset-x-0 bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-300">
+                        <div className="sticky top-0 bg-white border-b border-slate-100 p-4 flex justify-between items-center">
+                            <h2 className="text-lg font-bold text-slate-900">Your Basket</h2>
+                            <button
+                                onClick={() => setIsMobileBasketOpen(false)}
+                                className="p-2 text-slate-400 hover:text-slate-600 font-bold text-xl"
+                            >
+                                ✕
+                            </button>
                         </div>
 
-                        <button
-                            disabled={currentPage === totalPages}
-                            onClick={() => setCurrentPage(p => p + 1)}
-                            className="p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-300 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white transition-all shadow-sm"
-                        >
-                            <ChevronRight className="size-5 text-slate-600" />
-                        </button>
+                        <div className="p-4 pb-12">
+                            <BasketSidebar />
+                        </div>
                     </div>
-                )}
-
-                {
-                    activeMapStore && (
-                        <StoreMapModal
-                            storeName={activeMapStore}
-                            currentLoc={storeLocations[activeMapStore]}
-                            onClose={() => setActiveMapStore(null)}
-                            onSave={(loc: any) => {
-                                if (activeMapStore === 'HOME') {
-                                    setHomeCoords(loc);
-                                } else {
-                                    setStoreLocation(activeMapStore, loc);
-                                }
-                                setActiveMapStore(null);
-                            }}
-                        />
-                    )
-                }
-
-            </div>
+                </div>
+            )}
         </div>
     );
 }
 
 // --- Card Component (Internal) ---
-function ProductCard({ product }: { product: Product }) {
+function ProductCard({ product, onAdd }: { product: Product, onAdd: () => void }) {
     const badgeStyle = storeBadges[product.storeName] || storeBadges['Metro'];
     const { storeLocations, consumption, fuelPrices, homeCoords } = useOptimization();
 
@@ -413,6 +388,16 @@ function ProductCard({ product }: { product: Product }) {
                         {product.categoryName}
                     </span>
                 )}
+            </div>
+
+            <div className="p-5 pt-0">
+                <button
+                    onClick={onAdd}
+                    className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-indigo-600 transition-all flex items-center justify-center gap-2"
+                >
+                    <ShoppingCart size={16} />
+                    Add to Basket
+                </button>
             </div>
 
             {/* Travel Overhead UI */}
