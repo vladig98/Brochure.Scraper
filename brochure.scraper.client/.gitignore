@@ -7,6 +7,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 public/products.json
+public/fuel_prices.json
 
 node_modules
 dist

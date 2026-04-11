@@ -9,6 +9,7 @@ builder.Services.AddKeyedSingleton<IScraper, LidlScraper>(ScraperType.Lidl);
 builder.Services.AddKeyedSingleton<IScraper, BillaScraper>(ScraperType.Billa);
 builder.Services.AddKeyedSingleton<IScraper, MetroScraper>(ScraperType.Metro);
 builder.Services.AddKeyedSingleton<IScraper, FantasticoScraper>(ScraperType.Fantastico);
+builder.Services.AddSingleton<FueloScraper>();
 builder.Services.AddSingleton<ProductsAggregator>();
 
 int exitCode = Microsoft.Playwright.Program.Main(["install", "--with-deps"]);

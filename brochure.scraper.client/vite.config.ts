@@ -44,7 +44,7 @@ export default defineConfig({
     base: '/Brochure.Scraper/',
     plugins: [
         tailwindcss(),
-        plugin()
+        plugin(),
     ],
     resolve: {
         alias: {

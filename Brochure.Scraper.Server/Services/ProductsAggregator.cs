@@ -5,7 +5,8 @@ public class ProductsAggregator(
     [FromKeyedServices(ScraperType.Lidl)] IScraper lidlScraper,
     [FromKeyedServices(ScraperType.Billa)] IScraper billaScraper,
     [FromKeyedServices(ScraperType.Metro)] IScraper metroScraper,
-    [FromKeyedServices(ScraperType.Fantastico)] IScraper fantasticoScraper)
+    [FromKeyedServices(ScraperType.Fantastico)] IScraper fantasticoScraper,
+    FueloScraper fueloScraper)
 {
     private readonly List<Product> _products = [];
     private readonly Lock _lock = new();
@@ -14,6 +15,15 @@ public class ProductsAggregator(
     public async Task AggregateAsync()
     {
         _products.Clear();
+        string projectRoot = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory)?.Parent?.Parent?.Parent?.FullName ?? string.Empty;
+
+        FuelPricesDto? fuelPrices = await fueloScraper.ScrapeAsync();
+        if (fuelPrices.HasValue)
+        {
+            string path = Path.Combine(projectRoot, "..", "brochure.scraper.client", "public", "fuel_prices.json");
+            await File.WriteAllTextAsync(path, JsonSerializer.Serialize(fuelPrices));
+        }
+
         List<Task<ICollection<Product>>> tasks =
         [
             kauflandScraper.FetchProductsAsync(),
@@ -33,7 +43,6 @@ public class ProductsAggregator(
             }
         }
 
-        string projectRoot = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory)?.Parent?.Parent?.Parent?.FullName ?? string.Empty;
         string outputPath = Path.Combine(projectRoot, "..", "brochure.scraper.client", "public", "products.json");
 
         GetProductsResponse response = new(_products);

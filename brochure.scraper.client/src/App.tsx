@@ -1,5 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Search, Calendar, ChevronLeft, ChevronRight, Tag, AlertCircle, Loader2 } from 'lucide-react';
+import { Search, Calendar, ChevronLeft, ChevronRight, Tag, AlertCircle, Loader2, Settings, MapPin } from 'lucide-react';
+import { useOptimization } from './context/OptimizationContext';
+import { VehicleWizard } from './components/VehicleWizard';
+import { StoreMapModal } from './components/StoreMapModal';
 
 // --- Types ---
 type ScraperType = 'Kaufland' | 'Lidl' | 'Billa' | 'Metro' | 'Fantastico';
@@ -28,7 +31,6 @@ interface Product {
 const ITEMS_PER_PAGE = 24;
 
 // --- Brand Styling Dictionary ---
-// Tailwind needs complete class strings to compile them correctly
 const storeStyles: Record<string, string> = {
     Kaufland: 'bg-red-600 text-white ring-red-600/30',
     Lidl: 'bg-blue-600 text-white ring-blue-600/30',
@@ -46,6 +48,24 @@ const storeBadges: Record<string, string> = {
     Fantastico: 'text-emerald-700 bg-emerald-50 border-emerald-200',
 };
 
+export const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // Earth's radius in km
+
+    // 1. Calculate the 'Straight Line' (Haversine)
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const straightLine = R * c;
+
+    const multiplier = straightLine < 5 ? 1.4 : 1.2;
+    const estimatedDrivingDistance = straightLine * multiplier;
+
+    return estimatedDrivingDistance;
+};
+
 // --- Main App Component ---
 export default function App() {
     const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -56,7 +76,6 @@ export default function App() {
         const fetchProducts = async () => {
             try {
                 setLoading(true);
-                //const response = await fetch('/products');
                 const response = await fetch('products.json');
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
@@ -109,6 +128,13 @@ function ProductDashboard({ allProducts }: { allProducts: Product[] }) {
     const [selectedStore, setSelectedStore] = useState<ScraperType | 'All'>('All');
     const [currentPage, setCurrentPage] = useState(1);
 
+    // Custom States for Optimization
+    const { consumption } = useOptimization();
+    const [showWizard, setShowWizard] = useState(false);
+
+    const [activeMapStore, setActiveMapStore] = useState<string | null>(null);
+    const { storeLocations, setStoreLocation, homeCoords, setHomeCoords } = useOptimization();
+
     const filteredProducts = useMemo(() => {
         const filtered = allProducts.filter((p) => {
             const matchesStore = selectedStore === 'All' || p.storeName === selectedStore;
@@ -160,19 +186,28 @@ function ProductDashboard({ allProducts }: { allProducts: Product[] }) {
                     {/* Filter Pills */}
                     <div className="flex gap-3 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
                         {stores.map((store) => {
-                            const isSelected = selectedStore === store;
-                            const activeClass = storeStyles[store] || storeStyles['All'];
-                            const inactiveClass = 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300 hover:bg-slate-50';
-
                             return (
-                                <button
-                                    key={store}
-                                    onClick={() => { setSelectedStore(store); setCurrentPage(1); }}
-                                    className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 whitespace-nowrap ${isSelected ? `${activeClass} shadow-md ring-4` : inactiveClass
-                                        }`}
-                                >
-                                    {store}
-                                </button>
+                                <div key={store} className="relative group">
+                                    <button
+                                        onClick={() => { setSelectedStore(store); setCurrentPage(1); }}
+                                        className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all ...`}
+                                    >
+                                        {store}
+                                    </button>
+
+                                    {store !== 'All' && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveMapStore(store);
+                                            }}
+                                            className={`absolute -top-1 -right-1 p-1 rounded-full border shadow-sm transition-transform hover:scale-110 
+                    ${storeLocations[store] ? 'bg-emerald-500 border-emerald-600 text-white' : 'bg-white border-slate-200 text-slate-400'}`}
+                                        >
+                                            <MapPin size={10} />
+                                        </button>
+                                    )}
+                                </div>
                             );
                         })}
                     </div>
@@ -181,6 +216,34 @@ function ProductDashboard({ allProducts }: { allProducts: Product[] }) {
 
             {/* Main Content Grid */}
             <div className="max-w-7xl mx-auto px-6 mt-8">
+
+                {/* Optimization Controls */}
+                <div className="mb-8 p-6 bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col gap-4">
+                    <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <Settings className="size-4" /> Optimization Settings
+                    </h2>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <button
+                            onClick={() => setActiveMapStore('HOME')} // Use a reserved keyword
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all border
+            ${homeCoords
+                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                    : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300'}`}
+                        >
+                            <MapPin size={16} className={homeCoords ? 'text-emerald-500' : 'text-slate-400'} />
+                            {homeCoords ? 'Home Location Set' : 'Set Home on Map'}
+                        </button>
+
+                        <button
+                            onClick={() => setShowWizard(!showWizard)}
+                            className="text-sm font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-xl transition-colors w-fit whitespace-nowrap"
+                        >
+                            {showWizard ? 'Close Vehicle Selector' : `Vehicle: ${consumption.toFixed(1)} L/100km (Adjust)`}
+                        </button>
+                    </div>
+                    {showWizard && <div className="mt-2 max-w-sm"><VehicleWizard /></div>}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {paginatedProducts.map((product, idx) => (
                         <ProductCard key={`${product.title}-${idx}`} product={product} />
@@ -220,6 +283,25 @@ function ProductDashboard({ allProducts }: { allProducts: Product[] }) {
                         </button>
                     </div>
                 )}
+
+                {
+                    activeMapStore && (
+                        <StoreMapModal
+                            storeName={activeMapStore}
+                            currentLoc={storeLocations[activeMapStore]}
+                            onClose={() => setActiveMapStore(null)}
+                            onSave={(loc: any) => {
+                                if (activeMapStore === 'HOME') {
+                                    setHomeCoords(loc);
+                                } else {
+                                    setStoreLocation(activeMapStore, loc);
+                                }
+                                setActiveMapStore(null);
+                            }}
+                        />
+                    )
+                }
+
             </div>
         </div>
     );
@@ -228,10 +310,33 @@ function ProductDashboard({ allProducts }: { allProducts: Product[] }) {
 // --- Card Component (Internal) ---
 function ProductCard({ product }: { product: Product }) {
     const badgeStyle = storeBadges[product.storeName] || storeBadges['Metro'];
+    const { storeLocations, consumption, fuelPrices, homeCoords } = useOptimization();
+
+    const calculateCost = () => {
+        let distanceKm = 5; // Default fallback
+
+        const storeLoc = storeLocations[product.storeName];
+
+        // Only calculate if BOTH home and store pins exist
+        if (storeLoc && homeCoords) {
+            distanceKm = getDistanceKm(
+                homeCoords.lat,
+                homeCoords.lng,
+                storeLoc.lat,
+                storeLoc.lng
+            );
+        }
+
+        const pricePerLiter = fuelPrices?.A95 || 2.65;
+        const tripCost = ((distanceKm * 2) / 100) * consumption * pricePerLiter;
+        return tripCost.toFixed(2);
+    };
+
+    const estTravelCost = calculateCost();
 
     return (
         <div className="group bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden relative">
-            {/* Promo Highlight Banner (Optional subtle top border) */}
+            {/* Promo Highlight Banner */}
             <div className={`h-1 w-full ${storeStyles[product.storeName]?.split(' ')[0] || 'bg-slate-200'}`} />
 
             <div className="p-5 flex-1 flex flex-col">
@@ -308,6 +413,12 @@ function ProductCard({ product }: { product: Product }) {
                         {product.categoryName}
                     </span>
                 )}
+            </div>
+
+            {/* Travel Overhead UI */}
+            <div className="bg-orange-50 px-5 py-2.5 border-t border-orange-100 text-[11px] text-orange-700 font-bold flex items-center justify-between">
+                <span>🚗 Travel Overhead</span>
+                <span className="bg-orange-200/50 px-2 py-1 rounded">+ {estTravelCost} €</span>
             </div>
         </div>
     );

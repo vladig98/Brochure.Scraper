@@ -1,14 +1,17 @@
 ﻿global using Brochure.Scraper.Server.Dtos;
 global using Brochure.Scraper.Server.Dtos.Billa;
 global using Brochure.Scraper.Server.Dtos.Fantastico;
+global using Brochure.Scraper.Server.Dtos.Fuelo;
 global using Brochure.Scraper.Server.Dtos.Kaufland;
 global using Brochure.Scraper.Server.Dtos.Lidl;
 global using Brochure.Scraper.Server.Dtos.Metro;
 global using Brochure.Scraper.Server.RegexPatterns.Billa;
 global using Brochure.Scraper.Server.RegexPatterns.Fantastico;
+global using Brochure.Scraper.Server.RegexPatterns.Fuelo;
 global using Brochure.Scraper.Server.Scrapers;
 global using Brochure.Scraper.Server.Scrapers.Billa;
 global using Brochure.Scraper.Server.Scrapers.Fantastico;
+global using Brochure.Scraper.Server.Scrapers.Fuelo;
 global using Brochure.Scraper.Server.Scrapers.Kaufland;
 global using Brochure.Scraper.Server.Scrapers.Lidl;
 global using Brochure.Scraper.Server.Scrapers.Metro;
