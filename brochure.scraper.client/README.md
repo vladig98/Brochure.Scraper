@@ -1,73 +1,52 @@
-# React + TypeScript + Vite
+# Brochure Scraper Client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, responsive React-based dashboard for browsing and filtering retail promotions aggregated from major Bulgarian supermarket chains. Built with **Vite**, **React**, and **Tailwind CSS**.
 
-Currently, two official plugins are available:
+## ✨ Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+* **Unified Deal Dashboard**: View promotional items from Kaufland, Lidl, Billa, Metro, and Fantastico in a standardized grid.
+* **Dual-Currency Support**: Prices are automatically parsed and displayed in both BGN and EUR for quick comparison.
+* **Dynamic Filtering**: 
+    * **Store Filter**: Filter deals by specific retail brands using interactive brand-colored pills.
+    * **Live Search**: Instant search across titles, subtitles, categories, and descriptions.
+* **Smart Pagination**: Efficiently handles large datasets with a clean pagination system (24 items per page).
+* **Visual Branding**: Store-specific color schemes and badges (e.g., Red for Kaufland, Blue for Lidl, Yellow for Billa).
+* **Responsive Design**: Fully optimized for mobile, tablet, and desktop views.
 
-## React Compiler
+## 🛠️ Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+* **Framework**: [React 18](https://react.dev/)
+* **Build Tool**: [Vite](https://vitejs.dev/)
+* **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+* **Icons**: [Lucide React](https://lucide.dev/)
+* **HTTPS Development**: Automatic ASP.NET Core dev-cert integration for secure local development.
 
-## Expanding the ESLint configuration
+## 🚀 Getting Started
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Prerequisites
+* [Node.js](https://nodejs.org/) (Latest LTS)
+* [.NET SDK](https://dotnet.microsoft.com/download) (Required for generating local development HTTPS certificates)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Installation
+1.  **Navigate to the client directory**:
+    ```bash
+    cd brochure.scraper.client
+    ```
+2.  **Install dependencies**:
+    ```bash
+    npm install
+    ```
+3.  **Start the development server**:
+    ```bash
+    npm run dev
+    ```
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 📂 Configuration & Data Flow
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+* **Vite Config**: The project is configured with a custom port (`54914`) and automatic HTTPS certificate mapping from the machine's ASP.NET store.
+* **Data Source**: By default, the app fetches data from a `products.json` file located in the `public` directory. 
+* **Price Logic**: The frontend includes logic to clean and parse varied price formats (handling "лв.", "€", and different decimal separators) to ensure consistent sorting and display.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 🧪 Development
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+The application includes a `StrictMode` wrapper and uses `useMemo` for high-performance filtering and sorting of the product list, ensuring the UI remains snappy even with thousands of active deals.
