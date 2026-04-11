@@ -41,9 +41,6 @@ export function BasketSidebar() {
         URL.revokeObjectURL(url);
     };
 
-    // Group items by store to calculate travel overhead per store
-    const storesInBasket = Array.from(new Set(basket.map(item => item.storeName)));
-
     const calculateOptimizedTravelCost = () => {
         // 1. Get unique stores in the basket
         const uniqueStoreNames = Array.from(new Set(basket.map(item => item.storeName)));
