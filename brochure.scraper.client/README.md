@@ -1,52 +1,59 @@
-# Brochure Scraper Client
+# Deal Aggregator FE
 
-A modern, responsive React-based dashboard for browsing and filtering retail promotions aggregated from major Bulgarian supermarket chains. Built with **Vite**, **React**, and **Tailwind CSS**.
+An ultra-optimized .NET-backed React frontend for tracking, filtering, and cost-optimizing grocery deals across major Bulgarian retailers.
 
-## ✨ Features
+## Key Features
 
-* **Unified Deal Dashboard**: View promotional items from Kaufland, Lidl, Billa, Metro, and Fantastico in a standardized grid.
-* **Dual-Currency Support**: Prices are automatically parsed and displayed in both BGN and EUR for quick comparison.
-* **Dynamic Filtering**: 
-    * **Store Filter**: Filter deals by specific retail brands using interactive brand-colored pills.
-    * **Live Search**: Instant search across titles, subtitles, categories, and descriptions.
-* **Smart Pagination**: Efficiently handles large datasets with a clean pagination system (24 items per page).
-* **Visual Branding**: Store-specific color schemes and badges (e.g., Red for Kaufland, Blue for Lidl, Yellow for Billa).
-* **Responsive Design**: Fully optimized for mobile, tablet, and desktop views.
+* Multi-Store Aggregation: Unified interface for Kaufland, Lidl, Billa, Metro, and Fantastico.
+* Logistics Optimization Engine:
+    * Route Circuit Logic: Calculates fuel overhead based on a Home -> Shop A -> Shop B -> Home chain rather than redundant round trips.
+    * Vehicle Persistence: Stores consumption (L/100km) and coordinates in LocalStorage for zero-setup return sessions.
+    * Real-time Cost Analysis: Dynamically calculates if a deal is actually a "deal" after accounting for travel overhead.
+* High-Performance UI:
+    * Dual-Pane Desktop Layout: Independent scrolling for the product grid and the basket sidebar.
+    * Mobile-First Responsive Design: Slide-over basket drawer with high-contrast brand styling.
+    * Interactive Store Mapping: Map-based coordinate selection for precise distance calculations.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
-* **Framework**: [React 18](https://react.dev/)
-* **Build Tool**: [Vite](https://vitejs.dev/)
-* **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-* **Icons**: [Lucide React](https://lucide.dev/)
-* **HTTPS Development**: Automatic ASP.NET Core dev-cert integration for secure local development.
+* Framework: React 18 + TypeScript
+* Styling: Tailwind CSS (Performance-first utility classes)
+* Icons: Lucide React
+* State Management: React Context API + LocalStorage Sync
+* Optimization: Haversine formula for geospatial distance calculation.
 
-## 🚀 Getting Started
+### Project Structure
 
-### Prerequisites
-* [Node.js](https://nodejs.org/) (Latest LTS)
-* [.NET SDK](https://dotnet.microsoft.com/download) (Required for generating local development HTTPS certificates)
+```text
+src/
+├── components/
+│   ├── BasketSidebar.tsx       # Optimization summary & item management
+│   ├── BasketItem.tsx          # Refactored high-hierarchy item rows
+│   ├── VehicleWizard.tsx       # UI for fuel consumption settings
+│   └── StoreMapModal.tsx       # Leaflet/Map interface for store pins
+├── context/
+│   └── OptimizationContext.tsx # Centralized state for vehicle, fuel, & pins
+├── utils/
+│   └── geo.ts                  # getDistanceKm logic
+└── types.ts                    # Strict typing for Scrapers and Products
+```
 
-### Installation
-1.  **Navigate to the client directory**:
-    ```bash
-    cd brochure.scraper.client
-    ```
-2.  **Install dependencies**:
-    ```bash
-    npm install
-    ```
-3.  **Start the development server**:
-    ```bash
-    npm run dev
-    ```
+## Optimization Logic (The Circuit Fix)
 
-## 📂 Configuration & Data Flow
+The application solves the over-calculation of fuel costs by grouping unique store visits into a single trip sequence. Instead of separate round trips, it calculates the sequence:
 
-* **Vite Config**: The project is configured with a custom port (`54914`) and automatic HTTPS certificate mapping from the machine's ASP.NET store.
-* **Data Source**: By default, the app fetches data from a `products.json` file located in the `public` directory. 
-* **Price Logic**: The frontend includes logic to clean and parse varied price formats (handling "лв.", "€", and different decimal separators) to ensure consistent sorting and display.
+TotalKm = Distance(Home to S1) + Distance(S1 to S2) + ... + Distance(Sn to Home)
 
-## 🧪 Development
+This ensures that shopping at multiple retailers in the same vicinity (e.g., a retail park) correctly calculates as near-zero additional travel overhead.
 
-The application includes a `StrictMode` wrapper and uses `useMemo` for high-performance filtering and sorting of the product list, ensuring the UI remains snappy even with thousands of active deals.
+## Setup
+
+1. Install Dependencies:
+   npm install
+2. Add tslib (if missing):
+   npm install tslib
+3. Run Development:
+   npm run dev
+
+## Exporting
+The Export Shopping List feature generates a grouped Markdown-compatible .txt file, organized by store with functional checkboxes for mobile note-taking apps.
