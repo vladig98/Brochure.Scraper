@@ -1,29 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { Product } from '../types';
-
-interface FuelPrices {
-    A95: number;
-    Diesel: number;
-    LPG: number;
-    Methane: number;
-}
-
-export interface StoreLocation {
-    lat: number;
-    lng: number;
-    address?: string;
-}
-
-interface BasketItem extends Product {
-    quantity: number;
-}
-
-export type FuelType = 'A95' | 'Diesel' | 'LPG';
-
-interface Vehicle {
-    consumption: number;
-    fuelType: FuelType;
-}
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import type { Product, FuelPrices, StoreLocation, BasketItem, Vehicle } from '../types';
 
 interface OptimizationState {
     fuelPrices: FuelPrices | null;
@@ -31,65 +7,86 @@ interface OptimizationState {
     storeLocations: Record<string, StoreLocation>;
     homeCoords: StoreLocation | null;
     basket: BasketItem[];
-    vehicle: Vehicle; // Consolidated source of truth
+    vehicle: Vehicle;
     setStoreLocation: (store: string, loc: StoreLocation) => void;
     setHomeLocation: (val: string) => void;
     setHomeCoords: (loc: StoreLocation) => void;
     addToBasket: (product: Product) => void;
     removeFromBasket: (title: string, store: string) => void;
     clearBasket: () => void;
-    updateVehicle: (updates: Partial<Vehicle>) => void; // Partial allowed for specific updates
+    updateVehicle: (updates: Partial<Vehicle>) => void;
 }
 
 const OptimizationContext = createContext<OptimizationState | undefined>(undefined);
 
-export const OptimizationProvider = ({ children }: { children: React.ReactNode }) => {
+export const OptimizationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [fuelPrices, setFuelPrices] = useState<FuelPrices | null>(null);
-    const [homeLocation, setHomeLocation] = useState('');
+    const [homeLocation, setHomeLocation] = useState<string>('');
     const [basket, setBasket] = useState<BasketItem[]>([]);
 
-    // Unified Vehicle State (Handles both Fuel and Consumption)
     const [vehicle, setVehicle] = useState<Vehicle>(() => {
         const saved = localStorage.getItem('user_vehicle');
-        return saved ? JSON.parse(saved) : { consumption: 7.5, fuelType: 'A95' };
+        if (saved) {
+            return JSON.parse(saved) as Vehicle;
+        }
+        return { consumption: 7.5, fuelType: 'A95' };
     });
 
-    // Save vehicle object whenever it changes
+    const [storeLocations, setStoreLocations] = useState<Record<string, StoreLocation>>(() => {
+        const saved = localStorage.getItem('store_locations');
+        if (saved) {
+            return JSON.parse(saved) as Record<string, StoreLocation>;
+        }
+        return {};
+    });
+
+    const [homeCoords, setHomeCoords] = useState<StoreLocation | null>(() => {
+        const saved = localStorage.getItem('home_coords');
+        if (saved) {
+            return JSON.parse(saved) as StoreLocation;
+        }
+        return null;
+    });
+
     useEffect(() => {
         localStorage.setItem('user_vehicle', JSON.stringify(vehicle));
     }, [vehicle]);
 
-    // Unified update function
-    const updateVehicle = (updates: Partial<Vehicle>) => {
-        setVehicle(prev => ({ ...prev, ...updates }));
-    };
+    useEffect(() => {
+        const fetchFuelPrices = async () => {
+            try {
+                const res = await fetch('fuel_prices.json');
+                const data = await res.json();
+                setFuelPrices(data as FuelPrices);
+            } catch (error) {
+                console.error("Fuel data not found", error);
+            }
+        };
+        fetchFuelPrices();
+    }, []);
 
-    const [storeLocations, setStoreLocations] = useState<Record<string, StoreLocation>>(() => {
-        const saved = localStorage.getItem('store_locations');
-        return saved ? JSON.parse(saved) : {};
-    });
+    const updateVehicle = useCallback((updates: Partial<Vehicle>) => {
+        setVehicle((prev) => ({ ...prev, ...updates }));
+    }, []);
 
-    const setStoreLocation = (store: string, loc: StoreLocation) => {
-        const newLocs = { ...storeLocations, [store]: loc };
-        setStoreLocations(newLocs);
-        localStorage.setItem('store_locations', JSON.stringify(newLocs));
-    };
+    const setStoreLocation = useCallback((store: string, loc: StoreLocation) => {
+        setStoreLocations((prev) => {
+            const newLocs = { ...prev, [store]: loc };
+            localStorage.setItem('store_locations', JSON.stringify(newLocs));
+            return newLocs;
+        });
+    }, []);
 
-    const [homeCoords, setHomeCoords] = useState<StoreLocation | null>(() => {
-        const saved = localStorage.getItem('home_coords');
-        return saved ? JSON.parse(saved) : null;
-    });
-
-    const updateHomeCoords = (loc: StoreLocation) => {
+    const updateHomeCoords = useCallback((loc: StoreLocation) => {
         setHomeCoords(loc);
         localStorage.setItem('home_coords', JSON.stringify(loc));
-    };
+    }, []);
 
-    const addToBasket = (product: Product) => {
-        setBasket(prev => {
-            const exists = prev.find(item => item.title === product.title && item.storeName === product.storeName);
+    const addToBasket = useCallback((product: Product) => {
+        setBasket((prev) => {
+            const exists = prev.find((item) => item.title === product.title && item.storeName === product.storeName);
             if (exists) {
-                return prev.map(item =>
+                return prev.map((item) =>
                     item.title === product.title && item.storeName === product.storeName
                         ? { ...item, quantity: item.quantity + 1 }
                         : item
@@ -97,21 +94,14 @@ export const OptimizationProvider = ({ children }: { children: React.ReactNode }
             }
             return [...prev, { ...product, quantity: 1 }];
         });
-    };
+    }, []);
 
-    const removeFromBasket = (title: string, store: string) => {
-        setBasket(prev => prev.filter(item =>
-            item.title !== title || item.storeName !== store
-        ));
-    };
+    const removeFromBasket = useCallback((title: string, store: string) => {
+        setBasket((prev) => prev.filter((item) => item.title !== title || item.storeName !== store));
+    }, []);
 
-    const clearBasket = () => setBasket([]);
-
-    useEffect(() => {
-        fetch('fuel_prices.json')
-            .then(res => res.json())
-            .then(setFuelPrices)
-            .catch(() => console.error("Fuel data not found"));
+    const clearBasket = useCallback(() => {
+        setBasket([]);
     }, []);
 
     return (
@@ -135,8 +125,10 @@ export const OptimizationProvider = ({ children }: { children: React.ReactNode }
     );
 };
 
-export const useOptimization = () => {
+export const useOptimization = (): OptimizationState => {
     const context = useContext(OptimizationContext);
-    if (!context) throw new Error("useOptimization must be used within Provider");
+    if (!context) {
+        throw new Error("useOptimization must be used within OptimizationProvider");
+    }
     return context;
 };

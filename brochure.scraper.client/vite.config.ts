@@ -1,13 +1,11 @@
 import { fileURLToPath, URL } from 'node:url';
-
 import { defineConfig } from 'vite';
 import plugin from '@vitejs/plugin-react';
 import fs from 'fs';
 import path from 'path';
 import child_process from 'child_process';
 import { env } from 'process';
-
-import tailwindcss from '@tailwindcss/vite'
+import tailwindcss from '@tailwindcss/vite';
 
 const baseFolder =
     env.APPDATA !== undefined && env.APPDATA !== ''
@@ -23,7 +21,7 @@ if (!fs.existsSync(baseFolder)) {
 }
 
 if (!fs.existsSync(certFilePath) || !fs.existsSync(keyFilePath)) {
-    if (0 !== child_process.spawnSync('dotnet', [
+    const spawnResult = child_process.spawnSync('dotnet', [
         'dev-certs',
         'https',
         '--export-path',
@@ -31,15 +29,13 @@ if (!fs.existsSync(certFilePath) || !fs.existsSync(keyFilePath)) {
         '--format',
         'Pem',
         '--no-password',
-    ], { stdio: 'inherit', }).status) {
+    ], { stdio: 'inherit' });
+
+    if (spawnResult.status !== 0) {
         throw new Error("Could not create certificate.");
     }
 }
 
-//const target = env.ASPNETCORE_HTTPS_PORT ? `https://localhost:${env.ASPNETCORE_HTTPS_PORT}` :
-//    env.ASPNETCORE_URLS ? env.ASPNETCORE_URLS.split(';')[0] : 'https://localhost:7258';
-
-// https://vitejs.dev/config/
 export default defineConfig({
     base: '/Brochure.Scraper/',
     plugins: [
@@ -52,16 +48,10 @@ export default defineConfig({
         }
     },
     server: {
-        //proxy: {
-        //    '^/products': {
-        //        target,
-        //        secure: false
-        //    }
-        //},
-        port: parseInt(env.DEV_SERVER_PORT || '54914'),
+        port: parseInt(env.DEV_SERVER_PORT || '54914', 10),
         https: {
             key: fs.readFileSync(keyFilePath),
             cert: fs.readFileSync(certFilePath),
         }
     }
-})
+});
