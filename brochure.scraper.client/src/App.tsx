@@ -88,7 +88,7 @@ function ProductDashboard({ allProducts }: { allProducts: Product[] }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedStore, setSelectedStore] = useState<ScraperType | 'All'>('All');
     const [currentPage, setCurrentPage] = useState(1);
-    const { consumption, basket, addToBasket, storeLocations, setStoreLocation, homeCoords, setHomeCoords } = useOptimization();
+    const { vehicle, basket, addToBasket, storeLocations, setStoreLocation, homeCoords, setHomeCoords } = useOptimization();
     const [showWizard, setShowWizard] = useState(false);
     const [activeMapStore, setActiveMapStore] = useState<string | null>(null);
     const [isMobileBasketOpen, setIsMobileBasketOpen] = useState(false);
@@ -186,7 +186,7 @@ function ProductDashboard({ allProducts }: { allProducts: Product[] }) {
                                 {homeCoords ? 'Home Set' : 'Set Home'}
                             </button>
                             <button onClick={() => setShowWizard(!showWizard)} className="text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl">
-                                {consumption.toFixed(1)} L/100km
+                                {vehicle.consumption.toFixed(1)} L/100km
                             </button>
                         </div>
                         {showWizard && <div className="mt-4"><VehicleWizard /></div>}
@@ -285,7 +285,7 @@ function ProductDashboard({ allProducts }: { allProducts: Product[] }) {
 // --- Card Component (Internal) ---
 function ProductCard({ product, onAdd }: { product: Product, onAdd: () => void }) {
     const badgeStyle = storeBadges[product.storeName] || storeBadges['Metro'];
-    const { storeLocations, consumption, fuelPrices, homeCoords } = useOptimization();
+    const { storeLocations, vehicle, fuelPrices, homeCoords } = useOptimization();
 
     const calculateCost = () => {
         let distanceKm = 5; // Default fallback
@@ -302,8 +302,8 @@ function ProductCard({ product, onAdd }: { product: Product, onAdd: () => void }
             );
         }
 
-        const pricePerLiter = fuelPrices?.A95 || 2.65;
-        const tripCost = ((distanceKm * 2) / 100) * consumption * pricePerLiter;
+        const pricePerLiter = fuelPrices?.[vehicle.fuelType] || 2.65;
+        const tripCost = ((distanceKm * 2) / 100) * vehicle.consumption * pricePerLiter;
         return tripCost.toFixed(2);
     };
 

@@ -7,6 +7,7 @@ interface FuelPrices {
     LPG: number;
     Methane: number;
 }
+
 export interface StoreLocation {
     lat: number;
     lng: number;
@@ -17,20 +18,27 @@ interface BasketItem extends Product {
     quantity: number;
 }
 
+export type FuelType = 'A95' | 'Diesel' | 'LPG';
+
+interface Vehicle {
+    consumption: number;
+    fuelType: FuelType;
+}
+
 interface OptimizationState {
     fuelPrices: FuelPrices | null;
-    consumption: number; // L/100km
-    homeLocation: string; // "Sofia, Mladost" etc.
+    homeLocation: string;
     storeLocations: Record<string, StoreLocation>;
     homeCoords: StoreLocation | null;
     basket: BasketItem[];
+    vehicle: Vehicle; // Consolidated source of truth
     setStoreLocation: (store: string, loc: StoreLocation) => void;
-    setConsumption: (val: number) => void;
     setHomeLocation: (val: string) => void;
     setHomeCoords: (loc: StoreLocation) => void;
     addToBasket: (product: Product) => void;
     removeFromBasket: (title: string, store: string) => void;
     clearBasket: () => void;
+    updateVehicle: (updates: Partial<Vehicle>) => void; // Partial allowed for specific updates
 }
 
 const OptimizationContext = createContext<OptimizationState | undefined>(undefined);
@@ -40,14 +48,21 @@ export const OptimizationProvider = ({ children }: { children: React.ReactNode }
     const [homeLocation, setHomeLocation] = useState('');
     const [basket, setBasket] = useState<BasketItem[]>([]);
 
-    const [consumption, setConsumption] = useState<number>(() => {
-        const saved = localStorage.getItem('vehicle_consumption');
-        return saved ? parseFloat(saved) : 7.5; // Default to 7.5 if nothing found
+    // Unified Vehicle State (Handles both Fuel and Consumption)
+    const [vehicle, setVehicle] = useState<Vehicle>(() => {
+        const saved = localStorage.getItem('user_vehicle');
+        return saved ? JSON.parse(saved) : { consumption: 7.5, fuelType: 'A95' };
     });
 
+    // Save vehicle object whenever it changes
     useEffect(() => {
-        localStorage.setItem('vehicle_consumption', consumption.toString());
-    }, [consumption]);
+        localStorage.setItem('user_vehicle', JSON.stringify(vehicle));
+    }, [vehicle]);
+
+    // Unified update function
+    const updateVehicle = (updates: Partial<Vehicle>) => {
+        setVehicle(prev => ({ ...prev, ...updates }));
+    };
 
     const [storeLocations, setStoreLocations] = useState<Record<string, StoreLocation>>(() => {
         const saved = localStorage.getItem('store_locations');
@@ -75,7 +90,9 @@ export const OptimizationProvider = ({ children }: { children: React.ReactNode }
             const exists = prev.find(item => item.title === product.title && item.storeName === product.storeName);
             if (exists) {
                 return prev.map(item =>
-                    item.title === product.title ? { ...item, quantity: item.quantity + 1 } : item
+                    item.title === product.title && item.storeName === product.storeName
+                        ? { ...item, quantity: item.quantity + 1 }
+                        : item
                 );
             }
             return [...prev, { ...product, quantity: 1 }];
@@ -88,9 +105,7 @@ export const OptimizationProvider = ({ children }: { children: React.ReactNode }
         ));
     };
 
-    const clearBasket = () => {
-        setBasket([]);
-    };
+    const clearBasket = () => setBasket([]);
 
     useEffect(() => {
         fetch('fuel_prices.json')
@@ -102,18 +117,18 @@ export const OptimizationProvider = ({ children }: { children: React.ReactNode }
     return (
         <OptimizationContext.Provider value={{
             fuelPrices,
-            consumption,
             homeLocation,
             storeLocations,
             homeCoords,
             basket,
+            vehicle,
             setStoreLocation,
-            setConsumption,
             setHomeLocation,
             setHomeCoords: updateHomeCoords,
             addToBasket,
             removeFromBasket,
-            clearBasket
+            clearBasket,
+            updateVehicle
         }}>
             {children}
         </OptimizationContext.Provider>

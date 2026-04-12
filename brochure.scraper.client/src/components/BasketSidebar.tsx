@@ -4,7 +4,7 @@ import { X, Download } from 'lucide-react';
 import type { Product } from '../types';
 
 export function BasketSidebar() {
-    const { basket, removeFromBasket, storeLocations, homeCoords, consumption, fuelPrices } = useOptimization();
+    const { basket, removeFromBasket, storeLocations, homeCoords, vehicle, fuelPrices } = useOptimization();
 
     const exportShoppingList = () => {
         if (basket.length === 0) return;
@@ -72,8 +72,8 @@ export function BasketSidebar() {
         totalKm += getDistanceKm(currentPos.lat, currentPos.lng, homeCoords.lat, homeCoords.lng);
 
         // 6. Final math
-        const pricePerLiter = fuelPrices?.A95 || 2.65;
-        const totalCost = (totalKm / 100) * consumption * pricePerLiter;
+        const currentFuelPrice = fuelPrices?.[vehicle.fuelType] || 2.65;
+        const totalCost = (totalKm / 100) * vehicle.consumption * currentFuelPrice;
 
         return totalCost;
     };
